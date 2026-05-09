@@ -1,0 +1,4 @@
+Codex.AppDir/
+dist/
+*.AppImage
+.build/
