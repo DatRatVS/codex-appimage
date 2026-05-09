@@ -50,6 +50,14 @@ die() {
 print_banner
 countdown
 
+BUILD_CHANNEL="${1:-stable}"
+case "${BUILD_CHANNEL}" in
+  stable | bleeding-edge) ;;
+  *)
+    die "Unknown channel '${BUILD_CHANNEL}'. Usage: $0 [stable|bleeding-edge]"
+    ;;
+esac
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_ROOT="${ROOT}/.build"
 SRC_DIR="${BUILD_ROOT}/src"
@@ -66,7 +74,9 @@ NODE_PTY_VERSION="${NODE_PTY_VERSION:-1.1.0}"
 
 CODEX_ZIP="Codex-darwin-arm64-${CODEX_VERSION}.zip"
 CODEX_URL="https://persistent.oaistatic.com/codex-app-prod/${CODEX_ZIP}"
-CODEX_SHA256="${CODEX_SHA256:-c325741ec38a801889518d62ad756db7d6df1035d755db90a046373c96fb5198}"
+DEFAULT_CODEX_SHA256="c325741ec38a801889518d62ad756db90a046373c96fb5198"
+CODEX_SHA256="${CODEX_SHA256:-${DEFAULT_CODEX_SHA256}}"
+CODEX_APPCAST_URL="${CODEX_APPCAST_URL:-https://persistent.oaistatic.com/codex-app-prod/appcast.xml}"
 
 BETTER_SQLITE3_TGZ="better-sqlite3-${BETTER_SQLITE3_VERSION}.tgz"
 BETTER_SQLITE3_URL="https://registry.npmjs.org/better-sqlite3/-/${BETTER_SQLITE3_TGZ}"
@@ -100,10 +110,54 @@ download() {
 verify_sha256() {
   local file="$1"
   local expected="$2"
-  [[ -z "${expected}" ]] && return 0
+  if [[ -z "${expected}" ]]; then
+    log_skip "No checksum configured for $(basename "${file}")"
+    return 0
+  fi
   log_info "Verifying $(basename "${file}")"
   echo "${expected}  ${file}" | sha256sum -c --status
   log_ok "Checksum passed for $(basename "${file}")"
+}
+
+resolve_bleeding_edge_codex() {
+  local appcast="${DOWNLOADS}/appcast.xml"
+
+  log_step "Resolving bleeding-edge Codex desktop archive"
+  rm -f "${appcast}"
+  download "${CODEX_APPCAST_URL}" "${appcast}"
+
+  CODEX_URL="$(
+    python - "${appcast}" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+tree = ET.parse(sys.argv[1])
+root = tree.getroot()
+channel = root.find("channel")
+if channel is None:
+    raise SystemExit("missing channel in appcast")
+
+for item in channel.findall("item"):
+    enclosure = item.find("enclosure")
+    if enclosure is None:
+        continue
+    url = enclosure.attrib.get("url", "")
+    if "Codex-darwin-arm64-" in url and url.endswith(".zip"):
+        print(url)
+        break
+else:
+    raise SystemExit("could not find Codex darwin arm64 zip in appcast")
+PY
+  )"
+  CODEX_ZIP="$(basename "${CODEX_URL}")"
+  CODEX_VERSION="${CODEX_ZIP#Codex-darwin-arm64-}"
+  CODEX_VERSION="${CODEX_VERSION%.zip}"
+  if [[ "${CODEX_SHA256}" == "${DEFAULT_CODEX_SHA256}" ]]; then
+    CODEX_SHA256=""
+  fi
+
+  log_ok "Bleeding-edge Codex version: ${CODEX_VERSION}"
+  log_info "Codex URL: ${CODEX_URL}"
 }
 
 log_step "Checking required commands"
@@ -124,6 +178,11 @@ rm -rf "${SRC_DIR}" "${ELECTRON_DIR}" "${APPDIR}" "${OUT}"
 mkdir -p "${DOWNLOADS}" "${SRC_DIR}" "${ELECTRON_DIR}" "${OUT}"
 log_info "Build directory: ${BUILD_ROOT}"
 log_info "Output directory: ${OUT}"
+log_info "Channel: ${BUILD_CHANNEL}"
+
+if [[ "${BUILD_CHANNEL}" == "bleeding-edge" ]]; then
+  resolve_bleeding_edge_codex
+fi
 
 log_step "Downloading source archives"
 download "${CODEX_URL}" "${DOWNLOADS}/${CODEX_ZIP}"

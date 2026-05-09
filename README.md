@@ -120,6 +120,16 @@ Install the dependencies for your distro from the section above, then build:
 ./build-codex-appimage.sh
 ```
 
+This uses the pinned stable Codex desktop archive.
+
+To build with the newest Codex desktop archive listed in OpenAI's appcast:
+
+```bash
+./build-codex-appimage.sh bleeding-edge
+```
+
+`bleeding-edge` only changes the Codex desktop archive. Electron, native module versions, and rebuild settings remain pinned by the script.
+
 Output:
 
 ```text
@@ -144,6 +154,14 @@ CODEX_VERSION=26.429.61741 \
 ELECTRON_VERSION=39.5.2 \
 ./build-codex-appimage.sh
 ```
+
+The default `stable` mode uses the pinned `CODEX_VERSION` and checksum. The `bleeding-edge` mode fetches the latest Codex desktop archive URL from:
+
+```text
+https://persistent.oaistatic.com/codex-app-prod/appcast.xml
+```
+
+Because the latest archive changes over time, `bleeding-edge` skips the Codex archive checksum unless you provide one manually through `CODEX_SHA256`.
 
 ## License
 
