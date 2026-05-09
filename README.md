@@ -19,6 +19,7 @@
   <a href="#dependencies">Dependencies</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#versions">Versions</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="#notes">Notes</a>
 </p>
 
