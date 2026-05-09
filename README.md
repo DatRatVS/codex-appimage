@@ -1,3 +1,24 @@
+<pre align="center">
+   ___       __  ___       __    __      _                       ___
+  / _ \___ _/ /_/ _ \___ _/ /_  / /_____(_)__ ___   _______  ___/ (_)__  ___ _
+ / // / _ `/ __/ , _/ _ `/ __/ / __/ __/ / -_|_-<  / __/ _ \/ _  / / _ \/ _ `/
+/____/\_,_/\__/_/|_|\_,_/\__/  \__/_/ /_/\__/___/  \__/\___/\_,_/_/_//_/\_, /
+                                                                       /___/
+</pre>
+
+<p align="center">
+  <a href="#source">Source</a> ·
+  <a href="#dependencies">Dependencies</a> ·
+  <a href="#arch-linux">Arch</a> ·
+  <a href="#fedora">Fedora</a> ·
+  <a href="#debianubuntu">Debian/Ubuntu</a> ·
+  <a href="#nixos">NixOS</a> ·
+  <a href="#build">Build</a> ·
+  <a href="#run">Run</a> ·
+  <a href="#versions">Versions</a> ·
+  <a href="#notes">Notes</a>
+</p>
+
 # Codex AppImage
 
 Build an AppImage for the OpenAI Codex desktop app on Linux.
