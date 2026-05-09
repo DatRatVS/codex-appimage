@@ -9,12 +9,7 @@
 <p align="center">
   <a href="#source">Source</a> ·
   <a href="#dependencies">Dependencies</a> ·
-  <a href="#arch-linux">Arch</a> ·
-  <a href="#fedora">Fedora</a> ·
-  <a href="#debianubuntu">Debian/Ubuntu</a> ·
-  <a href="#nixos">NixOS</a> ·
-  <a href="#build">Build</a> ·
-  <a href="#run">Run</a> ·
+  <a href="#usage">Usage</a> ·
   <a href="#versions">Versions</a> ·
   <a href="#notes">Notes</a>
 </p>
@@ -50,14 +45,14 @@ You need:
 
 The script bundles the Codex CLI if `codex` is found in `PATH`. Otherwise the AppImage will try to use `codex` from the host at runtime.
 
-## Arch Linux
+### Arch Linux
 
 ```bash
 sudo pacman -S --needed base-devel curl libarchive libicns nodejs npm python
 yay -S --needed appimagetool-bin openai-codex
 ```
 
-## Fedora
+### Fedora
 
 ```bash
 sudo dnf install @development-tools curl libarchive libicns nodejs npm python3
@@ -71,7 +66,7 @@ Install the Codex CLI separately if you want it bundled:
 npm install -g @openai/codex
 ```
 
-## Debian/Ubuntu
+### Debian/Ubuntu
 
 ```bash
 sudo apt update
@@ -86,7 +81,7 @@ Install the Codex CLI separately if you want it bundled:
 npm install -g @openai/codex
 ```
 
-## NixOS
+### NixOS
 
 Example shell:
 
@@ -100,7 +95,16 @@ Install the Codex CLI separately if you want it bundled:
 npm install -g @openai/codex
 ```
 
-## Build
+## Usage
+
+Clone the repo:
+
+```bash
+git clone https://github.com/DatRatVS/codex-appimage.git
+cd codex-appimage
+```
+
+Install the dependencies for your distro from the section above, then build:
 
 ```bash
 ./build-codex-appimage.sh
@@ -114,7 +118,7 @@ dist/OpenAI-Codex-x86_64.AppImage
 
 The script uses `.build/` for downloads and intermediate files, and `Codex.AppDir/` for the generated AppDir.
 
-## Run
+Run it:
 
 ```bash
 chmod +x dist/OpenAI-Codex-x86_64.AppImage
