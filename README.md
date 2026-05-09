@@ -7,6 +7,14 @@
 </pre>
 
 <p align="center">
+  <img alt="linux" src="https://img.shields.io/badge/linux-555?style=for-the-badge">
+  <img alt="users" src="https://img.shields.io/badge/users-555?style=for-the-badge">
+  <img alt="deserves" src="https://img.shields.io/badge/deserves-555?style=for-the-badge">
+  <img alt="the" src="https://img.shields.io/badge/the-555?style=for-the-badge">
+  <img alt="software" src="https://img.shields.io/badge/software-555?style=for-the-badge">
+</p>
+
+<p align="center">
   <a href="#source">Source</a> ·
   <a href="#dependencies">Dependencies</a> ·
   <a href="#usage">Usage</a> ·
