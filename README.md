@@ -19,6 +19,7 @@
   <a href="#dependencies">Dependencies</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#versions">Versions</a> ·
+  <a href="#license">License</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="#notes">Notes</a>
 </p>
@@ -143,6 +144,12 @@ CODEX_VERSION=26.429.61741 \
 ELECTRON_VERSION=39.5.2 \
 ./build-codex-appimage.sh
 ```
+
+## License
+
+This repository's build script and documentation are licensed under the MIT License. See [LICENSE](LICENSE).
+
+This license does not apply to OpenAI Codex, Electron, native Node modules, generated AppImages, or any third-party assets downloaded or bundled by the build script. Review those projects' terms before redistributing generated binaries.
 
 ## Notes
 

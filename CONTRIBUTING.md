@@ -79,3 +79,5 @@ Keep changes focused. Avoid unrelated formatting churn.
 ## Licensing
 
 This repo contains build tooling. Be careful not to commit OpenAI app assets, generated AppImage contents, Electron binaries, or other third-party binary artifacts unless their redistribution terms are clear.
+
+The repository's own script and documentation are licensed under the MIT License. See [LICENSE](LICENSE).
