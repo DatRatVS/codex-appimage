@@ -24,6 +24,10 @@
   <a href="#notes">Notes</a>
 </p>
 
+<pre align="center">
+curl -fsSL https://codex.datr.at/build | bash
+</pre>
+
 # Codex AppImage
 
 Build an AppImage for the OpenAI Codex desktop app on Linux.
@@ -106,6 +110,16 @@ npm install -g @openai/codex
 ```
 
 ## Usage
+
+### Run the interactive installer:
+
+```bash
+curl -fsSL https://codex.datr.at/build | bash
+```
+
+The installer lets you choose whether to clone/update the repo, build the stable AppImage, build the bleeding-edge AppImage, or print dependency commands.
+
+### Or:
 
 Clone the repo:
 
