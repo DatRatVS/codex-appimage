@@ -31,6 +31,14 @@ die() {
   exit 1
 }
 
+open_tty() {
+  if [[ -r /dev/tty ]]; then
+    exec 3</dev/tty
+  else
+    die "This installer needs an interactive terminal. Try: bash -c \"\$(curl -fsSL https://codex.datr.at/build)\""
+  fi
+}
+
 need() {
   command -v "$1" >/dev/null || die "Missing required command: $1"
 }
@@ -109,10 +117,11 @@ show_menu() {
 
 main() {
   print_header
+  open_tty
 
   while true; do
     show_menu
-    read -r -p 'Choose an option [1-5]: ' choice
+    read -r -u 3 -p 'Choose an option [1-5]: ' choice
 
     case "${choice}" in
       1)
