@@ -40,7 +40,7 @@ Tested on Arch Linux. Fedora, Debian/Ubuntu, and NixOS instructions are provided
 
 - Codex desktop archive: `https://persistent.oaistatic.com/codex-app-prod/Codex-darwin-arm64-26.429.61741.zip`
 - Electron runtime: `electron-v39.5.2-linux-x64.zip`
-- Native modules: `better-sqlite3 12.8.0`, `node-pty 1.1.0`
+- Native modules: detected from the downloaded Codex desktop app and rebuilt for Linux/Electron
 - Tested Codex CLI: `openai-codex 0.129.0`
 
 ## Dependencies
@@ -142,7 +142,7 @@ To build with the newest Codex desktop archive listed in OpenAI's appcast:
 ./build-codex-appimage.sh bleeding-edge
 ```
 
-`bleeding-edge` only changes the Codex desktop archive. Electron, native module versions, and rebuild settings remain pinned by the script.
+`bleeding-edge` changes the Codex desktop archive. The script reads that app's bundled `better-sqlite3` and `node-pty` versions, downloads matching npm sources, and rebuilds them for Linux/Electron.
 
 Output:
 
@@ -176,6 +176,8 @@ https://persistent.oaistatic.com/codex-app-prod/appcast.xml
 ```
 
 Because the latest archive changes over time, `bleeding-edge` skips the Codex archive checksum unless you provide one manually through `CODEX_SHA256`.
+
+Native module checksums are skipped by default because their versions are detected from the downloaded app. Provide `BETTER_SQLITE3_SHA256` or `NODE_PTY_SHA256` if you want to pin those tarballs manually.
 
 ## License
 

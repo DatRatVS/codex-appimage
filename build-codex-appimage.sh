@@ -69,8 +69,8 @@ OUT="${ROOT}/dist"
 CODEX_VERSION="${CODEX_VERSION:-26.429.61741}"
 ELECTRON_VERSION="${ELECTRON_VERSION:-39.5.2}"
 ELECTRON_REBUILD_TARGET="${ELECTRON_REBUILD_TARGET:-39.0.0}"
-BETTER_SQLITE3_VERSION="${BETTER_SQLITE3_VERSION:-12.8.0}"
-NODE_PTY_VERSION="${NODE_PTY_VERSION:-1.1.0}"
+BETTER_SQLITE3_VERSION="${BETTER_SQLITE3_VERSION:-}"
+NODE_PTY_VERSION="${NODE_PTY_VERSION:-}"
 
 CODEX_ZIP="Codex-darwin-arm64-${CODEX_VERSION}.zip"
 CODEX_URL="https://persistent.oaistatic.com/codex-app-prod/${CODEX_ZIP}"
@@ -78,13 +78,8 @@ DEFAULT_CODEX_SHA256="c325741ec38a801889518d62ad756db90a046373c96fb5198"
 CODEX_SHA256="${CODEX_SHA256:-${DEFAULT_CODEX_SHA256}}"
 CODEX_APPCAST_URL="${CODEX_APPCAST_URL:-https://persistent.oaistatic.com/codex-app-prod/appcast.xml}"
 
-BETTER_SQLITE3_TGZ="better-sqlite3-${BETTER_SQLITE3_VERSION}.tgz"
-BETTER_SQLITE3_URL="https://registry.npmjs.org/better-sqlite3/-/${BETTER_SQLITE3_TGZ}"
-BETTER_SQLITE3_SHA256="${BETTER_SQLITE3_SHA256:-2602a5726d0a9d8e6be407c59bc125e605110eda8e3b04e7ef8d6ddf762c9122}"
-
-NODE_PTY_TGZ="node-pty-${NODE_PTY_VERSION}.tgz"
-NODE_PTY_URL="https://registry.npmjs.org/node-pty/-/${NODE_PTY_TGZ}"
-NODE_PTY_SHA256="${NODE_PTY_SHA256:-c7517f19083ddcb05f276904680eb2b11a6b5ecab778b8e4e5685a6d645b3f60}"
+BETTER_SQLITE3_SHA256="${BETTER_SQLITE3_SHA256:-}"
+NODE_PTY_SHA256="${NODE_PTY_SHA256:-}"
 
 ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-linux-x64.zip"
 ELECTRON_URL="https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
@@ -186,14 +181,10 @@ fi
 
 log_step "Downloading source archives"
 download "${CODEX_URL}" "${DOWNLOADS}/${CODEX_ZIP}"
-download "${BETTER_SQLITE3_URL}" "${DOWNLOADS}/${BETTER_SQLITE3_TGZ}"
-download "${NODE_PTY_URL}" "${DOWNLOADS}/${NODE_PTY_TGZ}"
 download "${ELECTRON_URL}" "${DOWNLOADS}/${ELECTRON_ZIP}"
 
 log_step "Verifying source archives"
 verify_sha256 "${DOWNLOADS}/${CODEX_ZIP}" "${CODEX_SHA256}"
-verify_sha256 "${DOWNLOADS}/${BETTER_SQLITE3_TGZ}" "${BETTER_SQLITE3_SHA256}"
-verify_sha256 "${DOWNLOADS}/${NODE_PTY_TGZ}" "${NODE_PTY_SHA256}"
 
 log_step "Extracting Codex desktop archive"
 mkdir -p "${SRC_DIR}/dmg"
@@ -231,16 +222,31 @@ rm -rf "${SRC_DIR}/app-extracted/node_modules/sparkle-darwin"
 find "${SRC_DIR}/app-extracted" -type f \( -name '*.dylib' -o -name 'sparkle.node' \) -delete
 log_ok "Removed macOS native artifacts"
 
-bs3_ver="$(node -p "require('${SRC_DIR}/app-extracted/node_modules/better-sqlite3/package.json').version")"
-npty_ver="$(node -p "require('${SRC_DIR}/app-extracted/node_modules/node-pty/package.json').version")"
+app_better_sqlite3_ver="$(node -p "require('${SRC_DIR}/app-extracted/node_modules/better-sqlite3/package.json').version")"
+app_node_pty_ver="$(node -p "require('${SRC_DIR}/app-extracted/node_modules/node-pty/package.json').version")"
 
-[[ "${bs3_ver}" == "${BETTER_SQLITE3_VERSION}" ]] || {
-  die "better-sqlite3 version mismatch: app=${bs3_ver}, script=${BETTER_SQLITE3_VERSION}"
-}
-[[ "${npty_ver}" == "${NODE_PTY_VERSION}" ]] || {
-  die "node-pty version mismatch: app=${npty_ver}, script=${NODE_PTY_VERSION}"
-}
-log_ok "Native module versions match"
+if [[ -n "${BETTER_SQLITE3_VERSION}" && "${app_better_sqlite3_ver}" != "${BETTER_SQLITE3_VERSION}" ]]; then
+  die "better-sqlite3 version mismatch: app=${app_better_sqlite3_ver}, override=${BETTER_SQLITE3_VERSION}"
+fi
+if [[ -n "${NODE_PTY_VERSION}" && "${app_node_pty_ver}" != "${NODE_PTY_VERSION}" ]]; then
+  die "node-pty version mismatch: app=${app_node_pty_ver}, override=${NODE_PTY_VERSION}"
+fi
+
+BETTER_SQLITE3_VERSION="${app_better_sqlite3_ver}"
+NODE_PTY_VERSION="${app_node_pty_ver}"
+BETTER_SQLITE3_TGZ="better-sqlite3-${BETTER_SQLITE3_VERSION}.tgz"
+BETTER_SQLITE3_URL="https://registry.npmjs.org/better-sqlite3/-/${BETTER_SQLITE3_TGZ}"
+NODE_PTY_TGZ="node-pty-${NODE_PTY_VERSION}.tgz"
+NODE_PTY_URL="https://registry.npmjs.org/node-pty/-/${NODE_PTY_TGZ}"
+log_ok "Detected native module versions: better-sqlite3 ${BETTER_SQLITE3_VERSION}, node-pty ${NODE_PTY_VERSION}"
+
+log_step "Downloading native module sources"
+download "${BETTER_SQLITE3_URL}" "${DOWNLOADS}/${BETTER_SQLITE3_TGZ}"
+download "${NODE_PTY_URL}" "${DOWNLOADS}/${NODE_PTY_TGZ}"
+
+log_step "Verifying native module sources"
+verify_sha256 "${DOWNLOADS}/${BETTER_SQLITE3_TGZ}" "${BETTER_SQLITE3_SHA256}"
+verify_sha256 "${DOWNLOADS}/${NODE_PTY_TGZ}" "${NODE_PTY_SHA256}"
 
 log_step "Rebuilding native modules for Linux/Electron"
 mkdir -p "${SRC_DIR}/native-build"
