@@ -84,6 +84,7 @@ CODEX_APPCAST_URL="${CODEX_APPCAST_URL:-https://persistent.oaistatic.com/codex-a
 
 BETTER_SQLITE3_SHA256="${BETTER_SQLITE3_SHA256:-}"
 NODE_PTY_SHA256="${NODE_PTY_SHA256:-}"
+NIXOS_ELECTRON_LIBRARY_PATH=""
 
 ELECTRON_ZIP="electron-v${ELECTRON_VERSION}-linux-x64.zip"
 ELECTRON_URL="https://github.com/electron/electron/releases/download/v${ELECTRON_VERSION}/${ELECTRON_ZIP}"
@@ -110,6 +111,71 @@ prepare_nixos_npm_prefix() {
   else
     log_skip "NixOS npm prefix is outside HOME: ${npm_prefix}"
   fi
+}
+
+resolve_nixos_electron_library_path() {
+  local package
+  local package_path
+  local lib_paths=()
+  local old_ifs
+  local nixos_electron_packages=(
+    glib.out
+    gtk3
+    nss
+    nspr
+    at-spi2-core
+    cups.lib
+    dbus.lib
+    expat
+    libdrm
+    libxkbcommon
+    mesa
+    libgbm
+    libx11
+    libxcomposite
+    libxdamage
+    libxext
+    libxfixes
+    libxrandr
+    libxcb
+    pango.out
+    cairo
+    alsa-lib
+    freetype
+    fontconfig.lib
+    libglvnd
+    libxcursor
+    libxi
+    libxtst
+    libxscrnsaver
+    libxshmfence
+    libgpg-error
+  )
+
+  is_nixos || return 0
+
+  if ! command -v nix >/dev/null; then
+    log_skip "NixOS detected, but nix is not available; not embedding Electron library paths"
+    return 0
+  fi
+
+  for package in "${nixos_electron_packages[@]}"; do
+    package_path="$(nix eval --raw "nixpkgs#${package}" 2>/dev/null || true)"
+    if [[ -n "${package_path}" && -d "${package_path}/lib" ]]; then
+      lib_paths+=("${package_path}/lib")
+    fi
+  done
+
+  if [[ "${#lib_paths[@]}" -eq 0 ]]; then
+    log_skip "Could not resolve NixOS Electron library paths"
+    return 0
+  fi
+
+  old_ifs="${IFS}"
+  IFS=:
+  NIXOS_ELECTRON_LIBRARY_PATH="${lib_paths[*]}"
+  IFS="${old_ifs}"
+  log_ok "Resolved ${#lib_paths[@]} NixOS Electron library paths"
 }
 
 codex_vendor_root_for_binary() {
@@ -308,6 +374,7 @@ need python
 need sha256sum
 log_ok "Required commands found"
 prepare_nixos_npm_prefix
+resolve_nixos_electron_library_path
 
 log_step "Preparing workspace"
 rm -rf "${SRC_DIR}" "${ELECTRON_DIR}" "${APPDIR}" "${OUT}"
@@ -494,6 +561,11 @@ APPDIR_ROOT="${APPDIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 appdir="${APPDIR_ROOT}/usr/lib/openai-codex-desktop"
 electron="${APPDIR_ROOT}/usr/lib/electron/electron"
 webview_dir="${appdir}/content/webview"
+nixos_electron_library_path="__NIXOS_ELECTRON_LIBRARY_PATH__"
+
+if [[ -n "${nixos_electron_library_path}" ]]; then
+  export LD_LIBRARY_PATH="${nixos_electron_library_path}:${LD_LIBRARY_PATH:-}"
+fi
 
 if [[ -z "${CODEX_CLI_PATH:-}" ]]; then
   if [[ -x "${APPDIR_ROOT}/usr/bin/codex" ]]; then
@@ -598,6 +670,20 @@ fi
 electron_pid=$!
 wait "${electron_pid}"
 EOF
+python - "${APPDIR}/usr/bin/codex-desktop" "${NIXOS_ELECTRON_LIBRARY_PATH}" <<'PY'
+import sys
+
+path = sys.argv[1]
+library_path = sys.argv[2]
+
+with open(path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+content = content.replace("__NIXOS_ELECTRON_LIBRARY_PATH__", library_path)
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+PY
 chmod +x "${APPDIR}/usr/bin/codex-desktop"
 
 cp -a "${icon_png}" "${APPDIR}/openai-codex-desktop.png"
