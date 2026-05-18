@@ -100,7 +100,21 @@ npm install -g @openai/codex
 Example shell:
 
 ```bash
-nix shell nixpkgs#bash nixpkgs#curl nixpkgs#libarchive nixpkgs#libicns nixpkgs#nodejs nixpkgs#python3 nixpkgs#gcc nixpkgs#gnumake nixpkgs#pkg-config nixpkgs#appimagetool
+nix shell nixpkgs#bash nixpkgs#curl nixpkgs#libarchive nixpkgs#libicns nixpkgs#nodejs nixpkgs#python3 nixpkgs#gcc nixpkgs#gnumake nixpkgs#pkg-config nixpkgs#squashfsTools nixpkgs#file
+mkdir -p ~/.npm-global/lib
+```
+
+`appimagetool` is not available as a direct nixpkgs package. Download and wrap the AppImage release binary:
+
+```bash
+mkdir -p ~/bin
+curl -L -o ~/bin/appimagetool.appimage \
+  "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+chmod +x ~/bin/appimagetool.appimage
+unsquashfs -o 944632 ~/bin/appimagetool.appimage -d ~/bin/squashfs-root
+printf '%s\n' '#!/usr/bin/env bash' 'exec "$HOME/bin/squashfs-root/AppRun" "$@"' > ~/bin/appimagetool
+chmod +x ~/bin/appimagetool
+export PATH="$HOME/bin:$PATH"
 ```
 
 Install the Codex CLI separately if you want it bundled:

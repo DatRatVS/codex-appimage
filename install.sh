@@ -81,7 +81,16 @@ Debian/Ubuntu:
   npm install -g @openai/codex
 
 NixOS:
-  nix shell nixpkgs#bash nixpkgs#curl nixpkgs#libarchive nixpkgs#libicns nixpkgs#nodejs nixpkgs#python3 nixpkgs#gcc nixpkgs#gnumake nixpkgs#pkg-config nixpkgs#appimagetool
+  nix shell nixpkgs#bash nixpkgs#curl nixpkgs#libarchive nixpkgs#libicns nixpkgs#nodejs nixpkgs#python3 nixpkgs#gcc nixpkgs#gnumake nixpkgs#pkg-config nixpkgs#squashfsTools nixpkgs#file
+  mkdir -p ~/.npm-global/lib
+  mkdir -p ~/bin
+  curl -L -o ~/bin/appimagetool.appimage \
+    "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+  chmod +x ~/bin/appimagetool.appimage
+  unsquashfs -o 944632 ~/bin/appimagetool.appimage -d ~/bin/squashfs-root
+  printf '%s\n' '#!/usr/bin/env bash' 'exec "$HOME/bin/squashfs-root/AppRun" "$@"' > ~/bin/appimagetool
+  chmod +x ~/bin/appimagetool
+  export PATH="$HOME/bin:$PATH"
   npm install -g @openai/codex
 
 appimagetool must be installed and available in PATH.
