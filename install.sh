@@ -91,7 +91,13 @@ NixOS:
   printf '%s\n' '#!/usr/bin/env bash' 'exec "$HOME/bin/squashfs-root/AppRun" "$@"' > ~/bin/appimagetool
   chmod +x ~/bin/appimagetool
   export PATH="$HOME/bin:$PATH"
-  npm install -g @openai/codex
+  npm install -g @openai/codex@latest --include=optional
+  npm install -g @openai/codex@0.130.0-linux-x64
+  ~/.npm-global/lib/node_modules/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex --version
+
+  If codex is installed through configuration.nix, it can take priority over npm in PATH.
+  To force the npm native binary during build:
+    CODEX_CLI_PATH="$HOME/.npm-global/lib/node_modules/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex" ./build-codex-appimage.sh bleeding-edge
 
 appimagetool must be installed and available in PATH.
 EOF

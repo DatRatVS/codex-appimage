@@ -120,7 +120,16 @@ export PATH="$HOME/bin:$PATH"
 Install the Codex CLI separately if you want it bundled:
 
 ```bash
-npm install -g @openai/codex
+npm install -g @openai/codex@latest --include=optional
+npm install -g @openai/codex@0.130.0-linux-x64
+~/.npm-global/lib/node_modules/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex --version
+```
+
+On NixOS, a `codex` installed through `configuration.nix` can take priority over npm in `PATH`. The build script prefers npm's native vendor binary when it exists, but you can force the exact CLI binary to bundle:
+
+```bash
+CODEX_CLI_PATH="$HOME/.npm-global/lib/node_modules/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex" \
+  ./build-codex-appimage.sh bleeding-edge
 ```
 
 ## Usage
