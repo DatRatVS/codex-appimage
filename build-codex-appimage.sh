@@ -112,6 +112,124 @@ prepare_nixos_npm_prefix() {
   fi
 }
 
+codex_vendor_root_for_binary() {
+  local binary="$1"
+  local binary_dir
+  local arch_root
+
+  binary_dir="$(cd "$(dirname "${binary}")" && pwd)"
+  arch_root="$(cd "${binary_dir}/.." && pwd)"
+  if [[ "$(basename "${binary_dir}")" == "codex" && "$(basename "${arch_root}")" == "x86_64-unknown-linux-musl" ]]; then
+    printf '%s\n' "${arch_root}"
+  fi
+}
+
+copy_codex_cli_binary() {
+  local binary="$1"
+  local label="$2"
+  local vendor_root="${3:-}"
+
+  [[ -n "${vendor_root}" ]] || vendor_root="$(codex_vendor_root_for_binary "${binary}")"
+
+  mkdir -p "${APPDIR}/usr/lib/codex-cli/path"
+  cp -L "${binary}" "${APPDIR}/usr/lib/codex-cli/codex"
+
+  if [[ -n "${vendor_root}" && -x "${vendor_root}/path/rg" ]]; then
+    cp -L "${vendor_root}/path/rg" "${APPDIR}/usr/lib/codex-cli/path/rg"
+  fi
+
+  cat >"${APPDIR}/usr/bin/codex" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPDIR_ROOT="${APPDIR:-$(cd "${HERE}/../.." && pwd)}"
+cli_dir="${APPDIR_ROOT}/usr/lib/codex-cli"
+
+if [[ -x "${cli_dir}/path/rg" ]]; then
+  export PATH="${cli_dir}/path:${PATH:-}"
+fi
+
+exec "${cli_dir}/codex" "$@"
+EOF
+  chmod +x "${APPDIR}/usr/bin/codex"
+  log_ok "Bundled Codex CLI native binary from ${label}: ${binary}"
+}
+
+find_codex_vendor_binary_in_root() {
+  local root="$1"
+
+  [[ -d "${root}" ]] || return 0
+  find "${root}" \
+    \( \
+      -path '*/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex' \
+      -o -path '*/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex' \
+    \) \
+    -type f \
+    -executable \
+    -print \
+    -quit
+}
+
+find_codex_npm_vendor_binary() {
+  local candidate
+  local npm_prefix
+  local roots=()
+
+  if npm_prefix="$(npm config get prefix 2>/dev/null)" && [[ -n "${npm_prefix}" ]]; then
+    roots+=("${npm_prefix}/lib/node_modules")
+  fi
+  roots+=("${HOME}/.npm-global/lib/node_modules")
+
+  if command -v npm >/dev/null && npm_root="$(npm root -g 2>/dev/null)" && [[ -n "${npm_root}" ]]; then
+    roots+=("${npm_root}")
+  fi
+
+  for candidate in "${roots[@]}"; do
+    find_codex_vendor_binary_in_root "${candidate}"
+  done | awk 'NF && !seen[$0]++ { print; exit }'
+}
+
+bundle_codex_cli() {
+  local codex_path
+  local codex_real_path
+  local codex_package_root
+  local codex_vendor_binary
+  local npm_vendor_binary
+
+  if [[ -n "${CODEX_CLI_PATH:-}" ]]; then
+    if [[ -x "${CODEX_CLI_PATH}" ]]; then
+      copy_codex_cli_binary "${CODEX_CLI_PATH}" "CODEX_CLI_PATH"
+      return 0
+    fi
+    log_warn "CODEX_CLI_PATH is set but not executable: ${CODEX_CLI_PATH}"
+  fi
+
+  npm_vendor_binary="$(find_codex_npm_vendor_binary)"
+  if [[ -n "${npm_vendor_binary}" ]]; then
+    copy_codex_cli_binary "${npm_vendor_binary}" "npm global install"
+    return 0
+  fi
+
+  if command -v codex >/dev/null; then
+    codex_path="$(command -v codex)"
+    codex_real_path="$(readlink -f "${codex_path}")"
+    codex_package_root="$(cd "$(dirname "${codex_real_path}")/.." && pwd)"
+    codex_vendor_binary="$(find_codex_vendor_binary_in_root "${codex_package_root}")"
+
+    if [[ -n "${codex_vendor_binary}" ]]; then
+      copy_codex_cli_binary "${codex_vendor_binary}" "host package"
+    elif [[ -f "${codex_path}" && -x "${codex_path}" ]]; then
+      cp -L "${codex_path}" "${APPDIR}/usr/bin/codex"
+      log_ok "Bundled Codex CLI from ${codex_path}"
+    else
+      log_warn "Codex CLI found at ${codex_path}, but it is not an executable file; AppImage will use host codex at runtime"
+    fi
+  else
+    log_skip "Codex CLI not found in PATH; AppImage will use host codex at runtime"
+  fi
+}
+
 download() {
   local url="$1"
   local dest="$2"
@@ -352,49 +470,7 @@ if [[ -d "${SRC_DIR}/app-extracted/webview" ]]; then
 fi
 cp -a "${icon_png}" "${APPDIR}/usr/share/icons/hicolor/512x512/apps/openai-codex-desktop.png"
 
-if command -v codex >/dev/null; then
-  codex_path="$(command -v codex)"
-  codex_real_path="$(readlink -f "${codex_path}")"
-  codex_package_root="$(cd "$(dirname "${codex_real_path}")/.." && pwd)"
-  codex_vendor_binary="$(
-    find "${codex_package_root}" \
-      -path '*/vendor/x86_64-unknown-linux-musl/codex/codex' \
-      -type f \
-      -print \
-      -quit
-  )"
-
-  if [[ -n "${codex_vendor_binary}" && -x "${codex_vendor_binary}" ]]; then
-    mkdir -p "${APPDIR}/usr/lib/codex-cli/path"
-    cp -L "${codex_vendor_binary}" "${APPDIR}/usr/lib/codex-cli/codex"
-
-    codex_vendor_root="$(cd "$(dirname "${codex_vendor_binary}")/.." && pwd)"
-    if [[ -x "${codex_vendor_root}/path/rg" ]]; then
-      cp -L "${codex_vendor_root}/path/rg" "${APPDIR}/usr/lib/codex-cli/path/rg"
-    fi
-
-    cat >"${APPDIR}/usr/bin/codex" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APPDIR_ROOT="${APPDIR:-$(cd "${HERE}/../.." && pwd)}"
-cli_dir="${APPDIR_ROOT}/usr/lib/codex-cli"
-
-if [[ -x "${cli_dir}/path/rg" ]]; then
-  export PATH="${cli_dir}/path:${PATH:-}"
-fi
-
-exec "${cli_dir}/codex" "$@"
-EOF
-    chmod +x "${APPDIR}/usr/bin/codex"
-    log_ok "Bundled Codex CLI native binary from ${codex_vendor_binary}"
-  else
-    log_warn "Codex CLI found at ${codex_path}, but its Linux x64 native binary was not found; AppImage will use host codex at runtime"
-  fi
-else
-  log_skip "Codex CLI not found in PATH; AppImage will use host codex at runtime"
-fi
+bundle_codex_cli
 
 cat >"${APPDIR}/Codex.desktop" <<'EOF'
 [Desktop Entry]
