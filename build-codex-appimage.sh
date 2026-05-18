@@ -90,6 +90,24 @@ need() {
   }
 }
 
+is_nixos() {
+  [[ -r /etc/os-release ]] && grep -q '^ID=nixos$' /etc/os-release
+}
+
+prepare_nixos_npm_prefix() {
+  local npm_prefix
+
+  is_nixos || return 0
+
+  npm_prefix="$(npm config get prefix)"
+  if [[ "${npm_prefix}" == "${HOME}"/* ]]; then
+    mkdir -p "${npm_prefix}/lib"
+    log_ok "Prepared NixOS npm prefix at ${npm_prefix}"
+  else
+    log_skip "NixOS npm prefix is outside HOME: ${npm_prefix}"
+  fi
+}
+
 download() {
   local url="$1"
   local dest="$2"
@@ -167,6 +185,7 @@ need npx
 need python
 need sha256sum
 log_ok "Required commands found"
+prepare_nixos_npm_prefix
 
 log_step "Preparing workspace"
 rm -rf "${SRC_DIR}" "${ELECTRON_DIR}" "${APPDIR}" "${OUT}"
