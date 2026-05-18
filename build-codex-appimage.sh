@@ -239,6 +239,7 @@ find_codex_vendor_binary_in_root() {
 
 find_codex_npm_vendor_binary() {
   local candidate
+  local found
   local npm_prefix
   local roots=()
 
@@ -252,8 +253,12 @@ find_codex_npm_vendor_binary() {
   fi
 
   for candidate in "${roots[@]}"; do
-    find_codex_vendor_binary_in_root "${candidate}"
-  done | awk 'NF && !seen[$0]++ { print; exit }'
+    while IFS= read -r found; do
+      [[ -n "${found}" ]] || continue
+      printf '%s\n' "${found}"
+      return 0
+    done < <(find_codex_vendor_binary_in_root "${candidate}")
+  done
 }
 
 is_transient_appimage_path() {
