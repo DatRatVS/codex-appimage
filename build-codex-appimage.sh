@@ -42,6 +42,10 @@ log_skip() {
   printf '[skip] %s\n' "$*"
 }
 
+log_warn() {
+  printf '[warn] %s\n' "$*" >&2
+}
+
 die() {
   printf '[error] %s\n' "$*" >&2
   exit 1
@@ -350,9 +354,43 @@ cp -a "${icon_png}" "${APPDIR}/usr/share/icons/hicolor/512x512/apps/openai-codex
 
 if command -v codex >/dev/null; then
   codex_path="$(command -v codex)"
-  if [[ -f "${codex_path}" && -x "${codex_path}" ]]; then
-    cp -L "${codex_path}" "${APPDIR}/usr/bin/codex"
-    log_ok "Bundled Codex CLI from ${codex_path}"
+  codex_real_path="$(readlink -f "${codex_path}")"
+  codex_package_root="$(cd "$(dirname "${codex_real_path}")/.." && pwd)"
+  codex_vendor_binary="$(
+    find "${codex_package_root}" \
+      -path '*/vendor/x86_64-unknown-linux-musl/codex/codex' \
+      -type f \
+      -print \
+      -quit
+  )"
+
+  if [[ -n "${codex_vendor_binary}" && -x "${codex_vendor_binary}" ]]; then
+    mkdir -p "${APPDIR}/usr/lib/codex-cli/path"
+    cp -L "${codex_vendor_binary}" "${APPDIR}/usr/lib/codex-cli/codex"
+
+    codex_vendor_root="$(cd "$(dirname "${codex_vendor_binary}")/.." && pwd)"
+    if [[ -x "${codex_vendor_root}/path/rg" ]]; then
+      cp -L "${codex_vendor_root}/path/rg" "${APPDIR}/usr/lib/codex-cli/path/rg"
+    fi
+
+    cat >"${APPDIR}/usr/bin/codex" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPDIR_ROOT="${APPDIR:-$(cd "${HERE}/../.." && pwd)}"
+cli_dir="${APPDIR_ROOT}/usr/lib/codex-cli"
+
+if [[ -x "${cli_dir}/path/rg" ]]; then
+  export PATH="${cli_dir}/path:${PATH:-}"
+fi
+
+exec "${cli_dir}/codex" "$@"
+EOF
+    chmod +x "${APPDIR}/usr/bin/codex"
+    log_ok "Bundled Codex CLI native binary from ${codex_vendor_binary}"
+  else
+    log_warn "Codex CLI found at ${codex_path}, but its Linux x64 native binary was not found; AppImage will use host codex at runtime"
   fi
 else
   log_skip "Codex CLI not found in PATH; AppImage will use host codex at runtime"
