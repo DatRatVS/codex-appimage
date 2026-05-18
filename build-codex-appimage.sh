@@ -256,6 +256,10 @@ find_codex_npm_vendor_binary() {
   done | awk 'NF && !seen[$0]++ { print; exit }'
 }
 
+is_transient_appimage_path() {
+  [[ "$1" == /tmp/.mount_*/* ]]
+}
+
 bundle_codex_cli() {
   local codex_path
   local codex_real_path
@@ -264,11 +268,14 @@ bundle_codex_cli() {
   local npm_vendor_binary
 
   if [[ -n "${CODEX_CLI_PATH:-}" ]]; then
-    if [[ -x "${CODEX_CLI_PATH}" ]]; then
+    if is_transient_appimage_path "${CODEX_CLI_PATH}"; then
+      log_skip "Ignoring transient AppImage CODEX_CLI_PATH: ${CODEX_CLI_PATH}"
+    elif [[ -x "${CODEX_CLI_PATH}" ]]; then
       copy_codex_cli_binary "${CODEX_CLI_PATH}" "CODEX_CLI_PATH"
       return 0
+    else
+      log_warn "CODEX_CLI_PATH is set but not executable: ${CODEX_CLI_PATH}"
     fi
-    log_warn "CODEX_CLI_PATH is set but not executable: ${CODEX_CLI_PATH}"
   fi
 
   npm_vendor_binary="$(find_codex_npm_vendor_binary)"
