@@ -104,6 +104,30 @@ run_build() {
   fi
 }
 
+cleanup_build_files() {
+  local removed=0
+  local target
+
+  if [[ ! -d "${INSTALL_DIR}" ]]; then
+    warn "Install directory does not exist: ${INSTALL_DIR}"
+    return 0
+  fi
+
+  for target in "${INSTALL_DIR}/.build" "${INSTALL_DIR}/Codex.AppDir"; do
+    if [[ -e "${target}" ]]; then
+      info "Removing ${target}"
+      rm -rf "${target}"
+      removed=1
+    fi
+  done
+
+  if [[ "${removed}" -eq 1 ]]; then
+    ok "Cleanup complete. Built AppImages in ${INSTALL_DIR}/dist were kept."
+  else
+    ok "Nothing to clean."
+  fi
+}
+
 show_menu() {
   printf '\n'
   printf 'Install directory: %s\n\n' "${INSTALL_DIR}"
@@ -111,7 +135,8 @@ show_menu() {
   printf '2) Build stable AppImage\n'
   printf '3) Build bleeding-edge AppImage\n'
   printf '4) Show dependency commands\n'
-  printf '5) Quit\n'
+  printf '5) Cleanup build files\n'
+  printf '6) Quit\n'
   printf '\n'
 }
 
@@ -121,7 +146,7 @@ main() {
 
   while true; do
     show_menu
-    read -r -u 3 -p 'Choose an option [1-5]: ' choice
+    read -r -u 3 -p 'Choose an option [1-6]: ' choice
 
     case "${choice}" in
       1)
@@ -136,7 +161,10 @@ main() {
       4)
         show_dependencies
         ;;
-      5 | q | Q)
+      5)
+        cleanup_build_files
+        ;;
+      6 | q | Q)
         ok "Bye"
         exit 0
         ;;

@@ -117,7 +117,7 @@ npm install -g @openai/codex
 curl -fsSL https://codex.datr.at/build | bash
 ```
 
-The installer lets you choose whether to clone/update the repo, build the stable AppImage, build the bleeding-edge AppImage, or print dependency commands.
+The installer lets you choose whether to clone/update the repo, build the stable AppImage, build the bleeding-edge AppImage, print dependency commands, or clean generated build files.
 
 ### Or:
 
