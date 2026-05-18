@@ -357,8 +357,7 @@ cat >"${APPDIR}/usr/bin/codex-desktop" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APPDIR_ROOT="$(cd "${HERE}/../.." && pwd)"
+APPDIR_ROOT="${APPDIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 appdir="${APPDIR_ROOT}/usr/lib/openai-codex-desktop"
 electron="${APPDIR_ROOT}/usr/lib/electron/electron"
 webview_dir="${appdir}/content/webview"
@@ -469,7 +468,14 @@ EOF
 chmod +x "${APPDIR}/usr/bin/codex-desktop"
 
 cp -a "${icon_png}" "${APPDIR}/openai-codex-desktop.png"
-ln -s usr/bin/codex-desktop "${APPDIR}/AppRun"
+cat >"${APPDIR}/AppRun" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+export APPDIR="${APPDIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+exec "${APPDIR}/usr/bin/codex-desktop" "$@"
+EOF
+chmod +x "${APPDIR}/AppRun"
 
 log_ok "Built AppDir at ${APPDIR}"
 
