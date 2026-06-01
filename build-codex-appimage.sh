@@ -373,6 +373,24 @@ PY
   log_info "Codex URL: ${CODEX_URL}"
 }
 
+update_bleeding_edge_codex_cli() {
+  local linux_x64_version
+
+  [[ "${BUILD_CHANNEL}" == "bleeding-edge" ]] || return 0
+
+  log_step "Updating global Codex CLI for bleeding-edge build"
+  npm install -g @openai/codex@latest --include=optional
+
+  linux_x64_version="$(npm view @openai/codex dist-tags.linux-x64 2>/dev/null || true)"
+  if [[ -n "${linux_x64_version}" ]]; then
+    npm install -g "@openai/codex@${linux_x64_version}"
+  else
+    log_warn "Could not resolve @openai/codex linux-x64 dist-tag; skipping explicit platform package install"
+  fi
+
+  log_ok "Global Codex CLI update complete"
+}
+
 log_step "Checking required commands"
 need bsdtar
 need cp
@@ -387,6 +405,7 @@ need sha256sum
 log_ok "Required commands found"
 prepare_nixos_npm_prefix
 resolve_nixos_electron_library_path
+update_bleeding_edge_codex_cli
 
 log_step "Preparing workspace"
 rm -rf "${SRC_DIR}" "${ELECTRON_DIR}" "${APPDIR}" "${OUT}"
